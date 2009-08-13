@@ -67,7 +67,6 @@
       rands (fn [] (repeatedly #(.nextGaussian r)))
       points (fn [] (vec (take 1000000 (partition 2 (rands)))))]
   (defn test-convex-hull []
-    (let [pts (points)
-	  hull-points (time (hull pts))]
+    (let [hull-points (time (hull (points)))]
       (printf "Points: %d\n" (count hull-points))
       (doseq [x hull-points] (println x)))))
