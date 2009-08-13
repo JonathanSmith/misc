@@ -2,7 +2,9 @@
   (:use clojure.contrib.math))
 
 (defmacro quadrant-one-pseudo-angle [dx dy]
-  `(/ ~dx (+ ~dy ~dx)))
+  `(let [dx# ~dx
+	 dy# ~dy]
+     (/ dx# (+ dy# dx#))))
 
 (defmacro pseudo-angle [dx dy]
   `(cond
