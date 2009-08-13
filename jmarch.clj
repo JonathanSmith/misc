@@ -1,7 +1,9 @@
 (ns hull (:use clojure.contrib.math))
 
 (defmacro quadrant-one-pseudo-angle [dx dy]
-  `(/ ~dx (+ ~dy ~dx)))
+  `(let [dx# ~dx
+	 dy# ~dy]
+     (double (/ dx# (+ dy# dx#)))))
 
 (defn point-min [p1 p2]
   (let [x1 (first p1)
@@ -18,39 +20,40 @@
      p2)))
 
 (defn find-angle [base-point next-point angle]
-  (let [new-angle  (let  [dx (- (first next-point) (first base-point))
-			  dy (- (second next-point) (second base-point))]
-		     (cond
-		      (and (== dx 0) (== dy 0)), 0
+  (let [new-angle  (double (let  [dx (double (- (double (first next-point)) (double (first base-point))))
+				  dy (double (- (double (second next-point)) (double (second base-point))))]
+			     (cond
+			      (and (== dx (double 0.0)) (== dy (double 0.0))), (double 0.0)
 
-		      (and (>= dx 0) (> dy 0)), (quadrant-one-pseudo-angle dx dy)
+			      (and (>= dx (double 0.0)) (> dy (double 0.0))), (quadrant-one-pseudo-angle dx dy)
 
-		      (and (> dx 0) (<= dy 0)), (+ 1 (quadrant-one-pseudo-angle (abs dy) dx))
+			      (and (> dx (double 0.0)) (<= dy (double 0.0))), (+ (double 1.0) (quadrant-one-pseudo-angle (double (abs dy)) dx))
 
-		      (and (<= dx 0) (< dy 0)), (+ 2 
-						   (quadrant-one-pseudo-angle 
-						    (abs dx) (abs dy)))
+			      (and (<= dx (double 0.0)) (< dy (double 0.0))), (+ (double 2.0) 
+										 (quadrant-one-pseudo-angle 
+										  (double (abs dx)) (double (abs dy))))
 
-		      (and (< dx 0) (>= dy 0)), (+ 3 (quadrant-one-pseudo-angle dy (abs dx)))
-		      :else 4))]
+			      (and (< dx (double 0.0)) (>= dy (double 0.0))), (+ (double 3.0) (quadrant-one-pseudo-angle dy (double (abs dx))))
 
-    (if (< new-angle angle) 4 new-angle)))
+			      :else (double 4))))]
+
+    (if (< new-angle (double angle)) (double 4) new-angle)))
 
 (defn find-min-angle-point [base-point pts angle]
   (let [points (remove #(= base-point %) pts)]
     (loop [best-point (first points)
-	   best-angle (find-angle base-point (first points) angle)
-	   next-point (second points)
-	   tail (rest (rest points))]
+		 best-angle (find-angle base-point (first points) angle)
+		 next-point (second points)
+		 tail (rest (rest points))]
 
-      (let [next-angle (find-angle base-point next-point angle)
-	    comparison (< best-angle next-angle)
-	    winner-point (if comparison best-point next-point)
-	    winner-angle (if comparison best-angle next-angle)]
+	    (let [next-angle (find-angle base-point next-point angle)
+		  comparison (< best-angle next-angle)
+		  winner-point (if comparison best-point next-point)
+		  winner-angle (if comparison best-angle next-angle)]
 
-	(if (next tail)
-	  (recur winner-point winner-angle (first tail) (rest tail))
-	  [winner-point winner-angle])))))
+	      (if (next tail)
+		(recur winner-point winner-angle (first tail) (rest tail))
+		[winner-point winner-angle])))))
 
 
 (defn hull [points]
