@@ -1,9 +1,21 @@
 (ns hull (:use clojure.contrib.math))
 
+(set! *warn-on-reflection* 1)
+
+(defmacro def-typed-op [symb type op]
+  `(defmacro ~symb [& args#]
+     `(~'~type (~'~op ~@(map (fn [x#] `(~'~type ~x#)) args#)))))
+
+(def-typed-op d+ double +)
+(def-typed-op d- double -)
+(def-typed-op d-div double /)
+(def-typed-op d* double *)
+
+
 (defmacro quadrant-one-pseudo-angle [dx dy]
   `(let [dx# ~dx
 	 dy# ~dy]
-     (double (/ dx# (+ dy# dx#)))))
+     (d-div dx# (d+ dy# dx#))))
 
 (defn point-min [p1 p2]
   (let [x1 (first p1)
@@ -19,21 +31,28 @@
      :else
      p2)))
 
+ 
+
 (defn find-angle [base-point next-point angle]
-  (let [new-angle  (double (let  [dx (double (- (double (first next-point)) (double (first base-point))))
-				  dy (double (- (double (second next-point)) (double (second base-point))))]
+  (let [new-angle  (double (let  [dx (d- (first next-point) (first base-point))
+				  dy  (d- (second next-point) (second base-point))]
 			     (cond
-			      (and (== dx (double 0.0)) (== dy (double 0.0))), (double 0.0)
+			      (and (== dx (double 0.0)) (== dy (double 0.0))),
+			      (double 0.0)
 
-			      (and (>= dx (double 0.0)) (> dy (double 0.0))), (quadrant-one-pseudo-angle dx dy)
+			      (and (>= dx (double 0.0)) (> dy (double 0.0))),
+			      (quadrant-one-pseudo-angle dx dy)
 
-			      (and (> dx (double 0.0)) (<= dy (double 0.0))), (+ (double 1.0) (quadrant-one-pseudo-angle (double (abs dy)) dx))
+			      (and (> dx (double 0.0)) (<= dy (double 0.0))),
+			      (d+ 1.0 (quadrant-one-pseudo-angle (abs (double dy)) dx))
 
-			      (and (<= dx (double 0.0)) (< dy (double 0.0))), (+ (double 2.0) 
-										 (quadrant-one-pseudo-angle 
-										  (double (abs dx)) (double (abs dy))))
+			      (and (<= dx (double 0.0)) (< dy (double 0.0))),
+			      (d+  2.0
+				   (quadrant-one-pseudo-angle 
+				    (abs (double dx)) (abs (double dy))))
 
-			      (and (< dx (double 0.0)) (>= dy (double 0.0))), (+ (double 3.0) (quadrant-one-pseudo-angle dy (double (abs dx))))
+			      (and (< dx (double 0.0)) (>= dy (double 0.0))),
+			      (d+ 3.0 (quadrant-one-pseudo-angle dy (abs (double dx))))
 
 			      :else (double 4))))]
 
@@ -58,17 +77,18 @@
 
 (defn hull [points]
   (let [start-point (reduce point-min points)]
-    (loop [hull-points [start-point] current-point start-point angle 0]
+    (loop [hull-points (transient [start-point]) current-point start-point angle 0]
       (let [[found-point angle] (find-min-angle-point current-point points angle)]
 	(if (= found-point start-point)
-	  hull-points
-	  (recur (conj hull-points found-point) found-point angle))))))
+	  (persistent! hull-points)
+	  (recur (conj! hull-points found-point) found-point angle))))))
 
 
 (let [r (java.util.Random.)
 	rands (fn [] (repeatedly #(.nextGaussian r)))
 	points (fn [] (vec (take 1000000 (partition 2 (rands)))))]
+  (defn tst []
     (let [pts (points)
 	  hull-points (time (hull pts))]
       (printf "Points: %d\n" (count hull-points))
-      (doseq [x hull-points] (println x))))
+      (doseq [x hull-points] (println x)))))
